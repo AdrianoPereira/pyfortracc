@@ -1,1 +1,1 @@
-from .forecast import forecast
+from .persistence_forecast import persistence_forecast
