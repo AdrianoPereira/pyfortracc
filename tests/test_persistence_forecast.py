@@ -56,8 +56,8 @@ if __name__ == '__main__':
     logger = logging.getLogger('persistence_forecast_demo')
     
     # Path configuration - adjust to your environment
-    input_path = "/home/adriano/Doutorado/2025/radar/input/"
-    output_path = "/home/adriano/Doutorado/2025/radar/output/"
+    input_path = ""
+    output_path = ""
     
     # Configure forecast parameters
     name_list = {
