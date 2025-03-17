@@ -131,6 +131,10 @@ def persistence_forecast(name_list: Dict[str, Any], read_function) -> np.ndarray
         lons = np.arange(last_frame.shape[1])
         lats = np.arange(last_frame.shape[0])
         logger.info("Created index-based coordinate grids")
+
+    pixel_width = lons[1] - lons[0]
+    pixel_height = lats[1] - lats[0]
+    logger.info(f"Pixel dimensions: width={pixel_width:.4f}, height={pixel_height:.4f}")
     
     # Initialize list to store forecast frames
     forecast_frames = []
@@ -138,7 +142,7 @@ def persistence_forecast(name_list: Dict[str, Any], read_function) -> np.ndarray
     
     # Create forecast directory if saving is enabled
     if save_forecast:
-        forecast_dir = f"{name_list['output_path']}forecast/persistence/"
+        forecast_dir = f"{name_list['output_path']}forecast/persistence/"   
         os.makedirs(forecast_dir, exist_ok=True)
         logger.info(f"Created forecast directory: {forecast_dir}")
     
@@ -174,22 +178,22 @@ def persistence_forecast(name_list: Dict[str, Any], read_function) -> np.ndarray
             logger.debug(f"Extrapolating cluster {uid} with velocity u={u:.2f}, v={v:.2f}")
             
             # Calculate new positions based on velocity vectors
-            if name_list['wrap_grid']:
+            if name_list['edges']:
                 # Wrap coordinates around grid boundaries if specified
-                new_array_x = np.ceil(array_x + (u * horizon)).astype(int) % last_frame.shape[0]
-                new_array_y = np.ceil(array_y + (v * horizon)).astype(int) % last_frame.shape[1]
+                new_array_y = np.ceil(array_y + ((v/pixel_height) * horizon)).astype(int) % last_frame.shape[0]
+                new_array_x = np.ceil(array_x + ((u/pixel_width) * horizon)).astype(int) % last_frame.shape[1]
                 logger.debug(f"Wrapped coordinates used for cluster {uid}")
             else:
                 # Otherwise, calculate new positions and clip to frame boundaries
-                new_array_x = np.ceil(array_x + (u * horizon)).astype(int)
-                new_array_y = np.ceil(array_y + (v * horizon)).astype(int)
+                new_array_y = np.ceil(array_y + ((v/pixel_height) * horizon)).astype(int)
+                new_array_x = np.ceil(array_x + ((u/pixel_width) * horizon)).astype(int)
                 
                 # Ensure new positions stay within frame boundaries
-                new_array_x = np.clip(new_array_x, 0, last_frame.shape[0] - 1)
-                new_array_y = np.clip(new_array_y, 0, last_frame.shape[1] - 1)
+                new_array_y = np.clip(new_array_y, 0, last_frame.shape[0] - 1)
+                new_array_x = np.clip(new_array_x, 0, last_frame.shape[1] - 1)
                 logger.debug(f"Clipped coordinates used for cluster {uid}")
             
-            # Update the forecast frame by transferring intensity values from original to forecast positions
+            # Update the forecast frame by transferring intensity values from original to forecast positions            
             forecast_frame[new_array_y, new_array_x] = last_frame[array_y, array_x]
         
         logger.info(f"Processed {processed_clusters} clusters for horizon {horizon}")
@@ -216,7 +220,7 @@ def persistence_forecast(name_list: Dict[str, Any], read_function) -> np.ndarray
                 filepath = os.path.join(forecast_dir, filename)
                 logger.info(f"Saving forecast to: {filepath}")
                 
-                # Convert to GrADS-compatible format (hours since reference date)
+                # Hours since reference date
                 reference_date = datetime.datetime(1970, 1, 1)
                 hours_since_reference = (forecast_time - reference_date).total_seconds() / 3600.0
                 
